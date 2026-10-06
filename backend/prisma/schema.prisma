@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Roles {
+  id        Int       @id @default(autoincrement())
+  roleName  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  users     Users[]
+
+  @@map("roles")
+}
+
+model Users {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  roleId    Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  role              Roles              @relation(fields: [roleId], references: [id])
+  stores            Store[]
+  conversations     ChatConversation[] @relation("CustomerConversations")
+  sentMessages      ChatMessage[]      @relation("SentMessages")
+
+  @@map("users")
+}
+
+model Store {
+  id        Int            @id @default(autoincrement())
+  name      String
+  userId    Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  user          Users              @relation(fields: [userId], references: [id])
+  addresses     StoreAddress[]
+  conversations ChatConversation[]
+  products      Product[]
+
+  @@map("stores")
+}
+
+model StoreAddress {
+  id           Int       @id @default(autoincrement())
+  storeId      Int
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  pincode      String
+  latitude     Float
+  longitude    Float
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  store        Store     @relation(fields: [storeId], references: [id])
+
+  @@map("store_addresses")
+}
+
+// One conversation per customer <-> store pair
+model ChatConversation {
+  id         Int           @id @default(autoincrement())
+  customerId Int
+  storeId    Int
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  // Relations
+  customer   Users         @relation("CustomerConversations", fields: [customerId], references: [id])
+  store      Store         @relation(fields: [storeId], references: [id])
+  messages   ChatMessage[]
+
+  @@unique([customerId, storeId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             Int              @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  message        String
+  isRead         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+
+  // Relations
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id])
+  sender         Users            @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("chat_messages")
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  storeId     Int
+  name        String
+  description String?
+  price       Float
+  stock       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  store       Store     @relation(fields: [storeId], references: [id])
+
+  @@map("products")
+}
